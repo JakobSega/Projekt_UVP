@@ -23,6 +23,7 @@ def download_url_as_string(url):
         return None
     return page_content.text
 
+
 def save_string_to_to_file(text, directory, filename):
     """Funkcija zapiše vrednost parametra "text" v novo ustvarjeno datoteko
     locirano v "directory"/"filename", ali povozi obstoječo. V primeru, da je
@@ -35,6 +36,7 @@ def save_string_to_to_file(text, directory, filename):
         file_out.write(text)
     return None
 
+
 def save_html(url, directory, filename):
     """Funkcija shrani vsebino spletne strani na naslovu "url" v datoteko
     "directory"/"filename"."""
@@ -42,8 +44,10 @@ def save_html(url, directory, filename):
     page_content = download_url_as_string(url)
     save_string_to_to_file(page_content, directory, filename)
 
+
 def make_main_blocks(directory, main_filename):
-    """Funkcija sprejme html dokument in izlušči izseke s povezavo in id-jem v seznam."""
+    """Funkcija sprejme html dokument, ki se nahaja na lokaciji "directory"/"main_filename"
+    in izlušči izseke s povezavo in id-jem v seznam."""
 
     path = os.path.join(directory, main_filename)
     vzorec = r'data-testid="no-top"><a class="link--muted no--text--decoration result-item" href="(https://suchen\.mobile\.de/fahrzeuge/details.*?)" data-listing-id="(\d+)"'
@@ -52,9 +56,18 @@ def make_main_blocks(directory, main_filename):
     return re.findall(vzorec, str, flags=re.DOTALL)
 
 
-sez = make_main_blocks("cars", "main_cars.html")
-print(sez)
+def make_all_main_blocks(directory, main_filename_page_number, page_number, number=50):
+    """Funkcija sprejme "seznam" dokumentov, ki so oštevilčeni s "page_number" in vrne seznam blokov, ki vsebujejo povezavo in id."""
+    
+    sez = []
+    while page_number <= number and page_number <= 50:
+        sez.extend(make_main_blocks(directory, main_filename_page_number))
+        page_number += 1
+    return sez
 
+
+sez = make_all_main_blocks(cars_directory, main_cars_filename, page_number, 2)
+print(sez)
 
 
 #def main(redownload=True, reparse=True):
