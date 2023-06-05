@@ -2,7 +2,9 @@ import csv
 import os
 import requests
 import re
-import selenium
+
+
+
 
 Page_number = 1
 Car_number = 1
@@ -25,24 +27,22 @@ Secondary_cars_filename = f"secondary_cars{Car_number}.html"
 #        return None
 #    return page_content.text
 
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
+
+
+
 
 def download_url_as_string(url):
     """Function to download and return the content of a web page as a string.
     Returns None in case of any errors.
     """
     try:
-        options = Options()
-        options.add_argument("--headless")  # Run the browser in headless mode
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
+        DRIVER_PATH = '/path/to/chromedriver'
+        driver = webdriver.Chrome(executable_path=DRIVER_PATH)
+        driver.get('https://google.com')
 
-        driver = webdriver.Chrome(options=options)
-        driver.get(url)
-        time.sleep(5)  # Wait for the challenge to be solved or content to load
         page_content = driver.page_source
         driver.quit()
 
@@ -142,7 +142,7 @@ def secondary_html_to_block(directory, secondary_filename):
         str = doc.read()
     return re.findall(vzorec, str, flags=re.DOTALL)
 
-print([seznam[3]])
+#print([seznam[3]])
 save_secondary_htmls([seznam[3]], Cars_directory, Secondary_cars_filename, Car_number)
 
 
