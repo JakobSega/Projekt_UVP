@@ -5,6 +5,8 @@ import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
+import undetected_chromedriver as uc
+
 
 
 
@@ -36,7 +38,7 @@ def download_url_as_string_selenium(url):
     """
     try:
         DRIVER_PATH = '/path/to/chromedriver'
-        driver = webdriver.Chrome(executable_path=DRIVER_PATH)
+        driver = uc.Chrome(headless=True,use_subprocess=False)
         driver.get(url)
 
         page_content = driver.page_source
@@ -144,7 +146,7 @@ def get_info_from_blocks(directory, main_filename_page_number, page_number, numb
     povezave_ids = {get_info_from_block(block) for block in blocks}
     return povezave_ids
 
-seznam = get_info_from_blocks(Cars_directory, Main_cars_filename, Page_number, 2)
+#seznam = get_info_from_blocks(Cars_directory, Main_cars_filename, Page_number, 2)
 
 
 def secondary_html_to_block(directory, secondary_filename):
@@ -154,11 +156,11 @@ def secondary_html_to_block(directory, secondary_filename):
         str = doc.read()
     return re.findall(vzorec, str, flags=re.DOTALL)
 
-print(seznam)
+#print(seznam)
 #print(seznam.count('366636334'))
 
 
-content = download_url_as_string("https://www.mobile.de/svc/a/366636334")
+#content = download_url_as_string("https://www.mobile.de/svc/a/366636334")
 #print(content)
 
 
