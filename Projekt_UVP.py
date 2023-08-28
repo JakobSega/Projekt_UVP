@@ -2,6 +2,7 @@ import csv
 import os
 import requests
 import re
+import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
@@ -33,12 +34,14 @@ def download_url_as_string(url):
 
 
 def download_url_as_string_selenium(url):
-    """Function to download and return the content of a web page as a string.
-    Returns None in case of any errors.
+    """Funkcija kot argument sprejme url in poskusi vrniti vsebino te spletne
+    strani kot niz. V primeru, da med izvajanje pride do napake vrne None.
     """
     try:
-        DRIVER_PATH = '/path/to/chromedriver'
-        driver = uc.Chrome(headless=True,use_subprocess=False)
+        #DRIVER_PATH = "C:\Users\blin\AppData\Local\Programs\Python\Python311\Lib\site-packages\undetected_chromedriver\"
+        options = webdriver.ChromeOptions()
+        #options.add_argument("--headless")
+        driver = webdriver.Chrome(options=options)
         driver.get(url)
 
         page_content = driver.page_source
@@ -46,11 +49,13 @@ def download_url_as_string_selenium(url):
 
         return page_content
     except Exception as e:
-        print("An error occurred while accessing the webpage:", e)
+        print("Spletna stran trenutno ni dosegljiva:", e)
         return None
 
+#niz = download_url_as_string_selenium(Cars_url)
+#print(niz)
 
-def save_string_to_to_file(text, directory, filename):
+def save_string_to_file(text, directory, filename):
     """Funkcija zapiše vrednost parametra "text" v novo ustvarjeno datoteko
     locirano v "directory"/"filename", ali povozi obstoječo. V primeru, da je
     niz "directory" prazen datoteko ustvari v trenutni mapi.
@@ -63,47 +68,47 @@ def save_string_to_to_file(text, directory, filename):
     return None
 
 
-def save_main_html(url, directory, filename):
-    """Funkcija shrani vsebino spletne strani na naslovu "url" v datoteko
-    "directory"/"filename"."""
-
-    page_content = download_url_as_string_selenium(url)
-    #print(page_content)
-    save_string_to_to_file(page_content, directory, filename)
-
-
-def save_secondary_html(url, directory, filename):
+def save_html(url, directory, filename):
     """Funkcija shrani vsebino spletne strani na naslovu "url" v datoteko
     "directory"/"filename"."""
 
     page_content = download_url_as_string(url)
     #print(page_content)
-    save_string_to_to_file(page_content, directory, filename)
+    save_string_to_file(page_content, directory, filename)
 
 
-#def save_main_htmls(url_page_number, directory, filename_page_number, page_number, number):
-#    """Funkcija shrani vsebino spletne strani na naslovih "url_page_number" v datoteko
-#    "directory"/"filename_page_number"."""
-#    while page_number <= number:
-#        save_html(url_page_number, directory, filename_page_number)
-#        page_number += 1
+#def save_secondary_html(url, directory, filename):
+#    """Funkcija shrani vsebino spletne strani na naslovu "url" v datoteko
+#    "directory"/"filename"."""
+#
+#    page_content = download_url_as_string(url)
+#    #print(page_content)
+#    save_string_to_file(page_content, directory, filename)
+
+
+def save_main_htmls(url_page_number, directory, filename_page_number, page_number, number):
+    """Funkcija shrani vsebino spletne strani na naslovih "url_page_number" v datoteko
+    "directory"/"filename_page_number"."""
+    while page_number <= number:
+        save_html(url_page_number, directory, filename_page_number)
+        page_number += 1
 
 
 def save_secondary_htmls(info_from_blocks, directory):
-    """Funkcija sprejme seznam slovarjev, ki vsebujejo povezave in shrani vsebino spletnih strani v datoteko "directory"/"filename_car_number"."""
+    """Funkcija sprejme množico, ki vsebuje id-je in shrani vsebino spletnih strani v datoteko "directory"/"filename_car_number"."""
     car_number = 1
     for i in info_from_blocks:
         ID = i
         Secondary_cars_filename = f"secondary_cars{car_number}.html"
         print(ID)
-        Secondary_cars_url = f"https://www.mobile.de/svc/a/{ID}"#https://www.mobile.de/svc/a/366636334
-        save_secondary_html(Secondary_cars_url, directory, Secondary_cars_filename)
+        Secondary_cars_url = f"https://www.mobile.de/svc/a/{ID}"#https://www.mobile.de/svc/a/342813417
+        save_html(Secondary_cars_url, directory, Secondary_cars_filename)
         car_number +=1  
 
 
 def make_main_blocks(directory, main_filename):
     """Funkcija sprejme html dokument, ki se nahaja na lokaciji "directory"/"main_filename"
-    in izlušči izseke s povezavo in id-jem v seznam."""
+    in izlušči izseke z id-jem v seznam."""
 
     path = os.path.join(directory, main_filename)
     vzorec = r'data-testid="no-top"><a class="link--muted no--text--decoration result-item" href="https://suchen\.mobile\.de/fahrzeuge/details.*?" data-listing-id="\d+"'
@@ -113,7 +118,7 @@ def make_main_blocks(directory, main_filename):
 
 
 def make_all_main_blocks(directory, main_filename_page_number, page_number, number=50):
-    """Funkcija sprejme "seznam" dokumentov, ki so oštevilčeni s "page_number" in vrne seznam blokov, ki vsebujejo povezavo in id."""
+    """Funkcija sprejme "seznam" dokumentov, ki so oštevilčeni s "page_number" in vrne seznam blokov, ki vsebujejo id."""
     
     sez = []
     while page_number <= number and page_number <= 50:
@@ -131,7 +136,7 @@ def make_all_main_blocks(directory, main_filename_page_number, page_number, numb
 
 
 def get_info_from_block(block):
-    """Funkcija iz niza za posamezn blok izlušči povezavo in id."""
+    """Funkcija iz niza za posamezn blok izlušči id."""
     #povezava = re.search(r'data-testid="no-top"><a class="link--muted no--text--decoration result-item" href="(https://suchen\.mobile\.de/fahrzeuge/details.*?)" data-listing-id="\d+"', block)
     id = re.search(r'data-testid="no-top"><a class="link--muted no--text--decoration result-item" href="https://suchen\.mobile\.de/fahrzeuge/details.*?" data-listing-id="(\d+)"', block)
     #return {"id": id.group(1)} #, povezava": povezava.group(1)"""
@@ -141,20 +146,38 @@ def get_info_from_block(block):
 
 
 def get_info_from_blocks(directory, main_filename_page_number, page_number, number=50):
-    """Funkcija iz seznama blokov izlušči seznam povezav in id-jev."""
+    """Funkcija iz seznama blokov izlušči množico id-jev."""
     blocks = make_all_main_blocks(directory, main_filename_page_number, page_number, number=50)
-    povezave_ids = {get_info_from_block(block) for block in blocks}
-    return povezave_ids
+    info_from_blocks = {get_info_from_block(block) for block in blocks}
+    return info_from_blocks
 
 #seznam = get_info_from_blocks(Cars_directory, Main_cars_filename, Page_number, 2)
 
 
-def secondary_html_to_block(directory, secondary_filename):
+def make_secondary_blocks(directory, car_number):
+    """Funkcija sprejme html dokument, ki se nahaja na lokaciji "directory"/"secondary_cars'car_number'"
+    in izlušči izsek z relevantnimi informacijami o avtomobilu."""
+    secondary_filename = f"secondary_cars{car_number}.html"
     path = os.path.join(directory, secondary_filename)
-    vzorec = r''
+    vzorec = r'.+"htmlDescription"'
     with open(path, "r", encoding="UTF8") as doc:
         str = doc.read()
     return re.findall(vzorec, str, flags=re.DOTALL)
+
+def make_all_secondary_blocks(directory, ids):
+    """Funkcija iz skupine dokumentov, ki se nahajajo v direktoriju in ustrezajo vzorcu "secondary_cars'car_number'" izlušči izseke z relevantnimi informacijami o avtomobilih."""
+    car_number = 1
+    sez = []
+    while car_number <= len(ids):
+        sez.extend(make_secondary_blocks(directory, car_number))
+        car_number += 1
+    return sez
+
+def get_info_from_secondary_block(block):
+    """Funkcija iz niza za posamezn blok izlušči relevantne informacije in jih vrne kot slovar."""
+    
+    return 
+
 
 #print(seznam)
 #print(seznam.count('366636334'))
