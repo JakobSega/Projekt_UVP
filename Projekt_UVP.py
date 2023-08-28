@@ -11,7 +11,7 @@ import undetected_chromedriver as uc
 
 
 
-Number_of_pages = 100
+Number_of_pages = 1
 Starting_page_number = 1
 #Cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={Page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
 Cars_directory = "cars"
@@ -86,7 +86,7 @@ def save_html(url, directory, filename):
 
 
 def save_main_htmls(directory, page_number, number):
-    """Funkcija shrani vsebino spletne strani na naslovih "url_page_number" v datoteko
+    """Funkcija shrani vsebino spletne strani na naslovih "cars_url" v datoteko
     "directory"/"filename_page_number"."""
     while page_number <= number:
         cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
@@ -173,7 +173,7 @@ def make_all_secondary_blocks(directory, ids):
 def get_info_from_secondary_block(block):
     """Funkcija iz niza za posamezn blok izlušči relevantne informacije in jih vrne kot slovar."""
     mileage = re.search(r'{"label":"Mileage","tag":"mileage","value":"(.*) km"}', block)
-    displacement = re.search(r'{"label":"Cubic Capacity","tag":"cubicCapacity","value":"(.*) ccm"}', block)
+    displacement = re.search(r'{"label":"Cubic Capacity","tag":"cubicCapacity","value":"(.*) ccm"}', block)     #PROBLEM
     power = re.search(r'{"label":"Power","tag":"power","value":"231 kW .\((.*) Hp\)"}', block)
     transmission = re.search(r'{"label":"Gearbox","tag":"transmission","value":"(.*)"}', block)
     registration = re.search(r'{"label":"First Registration","tag":"firstRegistration","value":".*\b\b\b\b"}', block)
@@ -187,7 +187,8 @@ def get_info_from_secondary_blocks(secondary_blocks):
     """Funksija sprejme seznam nizov in vrne relevantne informacije kot seznam slovarjev."""
     info_from_secondary_blocks = []
     for block in secondary_blocks:
-        info_from_secondary_blocks.extend(get_info_from_block(block))
+        info_from_secondary_blocks.extend(get_info_from_secondary_block(block))
+        print(info_from_secondary_blocks)
     return info_from_secondary_blocks
 
 def write_csv(fieldnames, rows, directory, filename):
@@ -202,7 +203,7 @@ def write_csv(fieldnames, rows, directory, filename):
             writer.writerow(row)
     return
 
-def write_cat_ads_to_csv(info_from_secondary_blocks, directory, filename):
+def write_info_to_csv(info_from_secondary_blocks, directory, filename):
     """Funkcija vse podatke iz parametra "ads" zapiše v csv datoteko podano s
     parametroma "directory"/"filename". Funkcija predpostavi, da so ključi vseh
     slovarjev parametra ads enaki in je seznam ads neprazen."""
@@ -220,16 +221,30 @@ def write_cat_ads_to_csv(info_from_secondary_blocks, directory, filename):
 
 #save_secondary_htmls(seznam, Cars_directory)
 
+ids = get_info_from_blocks(Cars_directory, Starting_page_number, Number_of_pages)
+#print(ids)
+#save_secondary_htmls(ids, Cars_directory)
+secondary_blocks = make_all_secondary_blocks(Cars_directory, ids)
+print("OK")
+info = get_info_from_secondary_blocks(secondary_blocks)
+write_info_to_csv(info, Cars_directory, Csv_filename)
 
-
-def main(redownload=True, reparse=True):
-    """Funkcija izvede celoten del pridobivanja podatkov:
-    1. Oglase prenese iz mobile.de
-    2. Lokalne html datoteke pretvori v lepšo predstavitev podatkov
-    3. Podatke shrani v csv datoteko
-    """
-    if redownload:
-        save_main_htmls(Cars_directory, 1, Number_of_pages)
-        ids = get_info_from_blocks(Cars_directory, Starting_page_number, Number_of_pages)
-        
-    if reparse:
+#def main(redownload=True, reparse=True):
+#    """Funkcija izvede celoten del pridobivanja podatkov:
+#    1. Oglase prenese iz mobile.de
+#    2. Lokalne html datoteke pretvori v lepšo predstavitev podatkov
+#    3. Podatke shrani v csv datoteko
+#    """
+#    if redownload:
+#        #save_main_htmls(Cars_directory, 1, Number_of_pages)
+#        ids = get_info_from_blocks(Cars_directory, Starting_page_number, Number_of_pages)
+#        print(ids)
+#        save_secondary_htmls(ids, Cars_directory)
+#        secondary_blocks = make_all_secondary_blocks(Cars_directory, ids)
+#    if reparse:
+#        print("OK")
+#        info =get_info_from_secondary_blocks(secondary_blocks)
+#        write_info_to_csv(info, Cars_directory, Csv_filename)
+#
+#if __name__ == '__main__':
+#    main(True, True)
