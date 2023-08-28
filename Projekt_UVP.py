@@ -159,24 +159,39 @@ def make_secondary_blocks(directory, car_number):
     in izlušči izsek z relevantnimi informacijami o avtomobilu."""
     secondary_filename = f"secondary_cars{car_number}.html"
     path = os.path.join(directory, secondary_filename)
-    vzorec = r'.+"htmlDescription"'
+    vzorec = r'.*"links"'
     with open(path, "r", encoding="UTF8") as doc:
         str = doc.read()
     return re.findall(vzorec, str, flags=re.DOTALL)
 
 def make_all_secondary_blocks(directory, ids):
-    """Funkcija iz skupine dokumentov, ki se nahajajo v direktoriju in ustrezajo vzorcu "secondary_cars'car_number'" izlušči izseke z relevantnimi informacijami o avtomobilih."""
+    """Funkcija iz skupine dokumentov, ki se nahajajo v direktoriju in ustrezajo vzorcu "secondary_cars'car_number'"
+    izlušči izseke z relevantnimi informacijami o avtomobilih."""
     car_number = 1
-    sez = []
+    secondary_blocks = []
     while car_number <= len(ids):
-        sez.extend(make_secondary_blocks(directory, car_number))
+        secondary_blocks.extend(make_secondary_blocks(directory, car_number))
         car_number += 1
-    return sez
+    return secondary_blocks
 
 def get_info_from_secondary_block(block):
     """Funkcija iz niza za posamezn blok izlušči relevantne informacije in jih vrne kot slovar."""
-    
-    return 
+    mileage = re.search(r'{"label":"Mileage","tag":"mileage","value":"(.*) km"}', block)
+    displacement = re.search(r'{"label":"Cubic Capacity","tag":"cubicCapacity","value":"(.*) ccm"}', block)
+    power = re.search(r'{"label":"Power","tag":"power","value":"231 kW .\((.*) Hp\)"}', block)
+    transmission = re.search(r'{"label":"Gearbox","tag":"transmission","value":"(.*)"}', block)
+    registration = re.search(r'{"label":"First Registration","tag":"firstRegistration","value":".*\b\b\b\b"}', block)
+    previous_owners = re.search(r'{"label":"Number of Vehicle Owners","tag":"numberOfPreviousOwners","value":"(\b*)"}', block)
+    price = re.search(r'"localized":{"amount":"€(.*)","netAmount"', block)
+    seller = re.search(r'"contact":{"type":"(.*)","country":"(.*)",', block)
+    return {'mileage': mileage.group(1), 'displacement': displacement.group(1), 'power': power.group(1), 'transmission': transmission.group(1),
+            'registration': registration.group(1), 'previous_owners': previous_owners.group(1), 'price': price.group(1), 'seller': seller.group(1)}
+
+def get_info_from_secondary_blocks(secondary_blocks):
+    info_from_secondary_blocks = []
+    for block in secondary_blocks:
+        info_from_secondary_blocks.extend(get_info_from_block(block))
+    return info_from_secondary_blocks
 
 
 #print(seznam)
