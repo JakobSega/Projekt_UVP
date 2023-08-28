@@ -11,17 +11,17 @@ import undetected_chromedriver as uc
 
 
 
-Page_number = 1
-Cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={Page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
+Number_of_pages = 100
+Starting_page_number = 1
+#Cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={Page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
 Cars_directory = "cars"
-Main_cars_filename = f"main_cars{Page_number}.html"
-
+#Main_cars_filename = f"main_cars{Page_number}.html"
+Csv_filename = "cars.csv"
 
 
 def download_url_as_string(url):
     """Funkcija kot argument sprejme url in poskusi vrniti vsebino te spletne
-    strani kot niz. V primeru, da med izvajanje pride do napake vrne None.
-    """
+    strani kot niz. V primeru, da med izvajanje pride do napake vrne None."""
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         page_content = requests.get(url, headers=headers)
@@ -71,7 +71,6 @@ def save_string_to_file(text, directory, filename):
 def save_html(url, directory, filename):
     """Funkcija shrani vsebino spletne strani na naslovu "url" v datoteko
     "directory"/"filename"."""
-
     page_content = download_url_as_string(url)
     #print(page_content)
     save_string_to_file(page_content, directory, filename)
@@ -86,11 +85,13 @@ def save_html(url, directory, filename):
 #    save_string_to_file(page_content, directory, filename)
 
 
-def save_main_htmls(url_page_number, directory, filename_page_number, page_number, number):
+def save_main_htmls(directory, page_number, number):
     """Funkcija shrani vsebino spletne strani na naslovih "url_page_number" v datoteko
     "directory"/"filename_page_number"."""
     while page_number <= number:
-        save_html(url_page_number, directory, filename_page_number)
+        cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
+        cars_filename = f"main_cars{page_number}.html"
+        save_html(cars_url, directory, cars_filename)
         page_number += 1
 
 
@@ -117,23 +118,18 @@ def make_main_blocks(directory, main_filename):
     return re.findall(vzorec, str, flags=re.DOTALL)
 
 
-def make_all_main_blocks(directory, main_filename_page_number, page_number, number=50):
+def make_all_main_blocks(directory, page_number, number):
     """Funkcija sprejme "seznam" dokumentov, ki so oštevilčeni s "page_number" in vrne seznam blokov, ki vsebujejo id."""
-    
+
     sez = []
-    while page_number <= number and page_number <= 50:
-        sez.extend(make_main_blocks(directory, main_filename_page_number))
+    while page_number <= number:
+        main_filename = f"main_cars{page_number}.html"
+        sez.extend(make_main_blocks(directory, main_filename))
         page_number += 1
     return sez
 
-
-
-
 #blocks = make_all_main_blocks(cars_directory, main_cars_filename, page_number, 2)
-
-
 #print(blocks[1])
-
 
 def get_info_from_block(block):
     """Funkcija iz niza za posamezn blok izlušči id."""
@@ -145,9 +141,9 @@ def get_info_from_block(block):
 #print(get_info_from_block(blocks[1]))
 
 
-def get_info_from_blocks(directory, main_filename_page_number, page_number, number=50):
+def get_info_from_blocks(directory, page_number, number):
     """Funkcija iz seznama blokov izlušči množico id-jev."""
-    blocks = make_all_main_blocks(directory, main_filename_page_number, page_number, number=50)
+    blocks = make_all_main_blocks(directory, page_number, number)
     info_from_blocks = {get_info_from_block(block) for block in blocks}
     return info_from_blocks
 
@@ -188,10 +184,30 @@ def get_info_from_secondary_block(block):
             'registration': registration.group(1), 'previous_owners': previous_owners.group(1), 'price': price.group(1), 'seller': seller.group(1)}
 
 def get_info_from_secondary_blocks(secondary_blocks):
+    """Funksija sprejme seznam nizov in vrne relevantne informacije kot seznam slovarjev."""
     info_from_secondary_blocks = []
     for block in secondary_blocks:
         info_from_secondary_blocks.extend(get_info_from_block(block))
     return info_from_secondary_blocks
+
+def write_csv(fieldnames, rows, directory, filename):
+    """Funkcija v csv datoteko podano s parametroma "directory"/"filename" zapiše
+    vrednosti v parametru "rows" pripadajoče ključem podanim v "fieldnames."""
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory, filename)
+    with open(path, 'w', encoding='utf-8') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    return
+
+def write_cat_ads_to_csv(info_from_secondary_blocks, directory, filename):
+    """Funkcija vse podatke iz parametra "ads" zapiše v csv datoteko podano s
+    parametroma "directory"/"filename". Funkcija predpostavi, da so ključi vseh
+    slovarjev parametra ads enaki in je seznam ads neprazen."""
+    assert info_from_secondary_blocks and (all(j.keys() == info_from_secondary_blocks[0].keys() for j in info_from_secondary_blocks))
+    write_csv(info_from_secondary_blocks[0].keys(), info_from_secondary_blocks, directory, filename)
 
 
 #print(seznam)
@@ -206,7 +222,14 @@ def get_info_from_secondary_blocks(secondary_blocks):
 
 
 
-#def main(redownload=True, reparse=True):
-#
-#   if redownload:
-#      save_html(cars_url, cars_directory, main_cars_filename
+def main(redownload=True, reparse=True):
+    """Funkcija izvede celoten del pridobivanja podatkov:
+    1. Oglase prenese iz mobile.de
+    2. Lokalne html datoteke pretvori v lepšo predstavitev podatkov
+    3. Podatke shrani v csv datoteko
+    """
+    if redownload:
+        save_main_htmls(Cars_directory, 1, Number_of_pages)
+        ids = get_info_from_blocks(Cars_directory, Starting_page_number, Number_of_pages)
+        
+    if reparse:
