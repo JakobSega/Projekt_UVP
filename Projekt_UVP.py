@@ -11,7 +11,7 @@ import undetected_chromedriver as uc
 
 
 
-Number_of_pages = 1
+Number_of_pages = 4
 Starting_page_number = 1
 #Cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={Page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
 Cars_directory = "cars"
@@ -102,7 +102,7 @@ def save_secondary_htmls(info_from_blocks, directory):
         ID = i
         Secondary_cars_filename = f"secondary_cars{car_number}.html"
         print(ID)
-        Secondary_cars_url = f"https://www.mobile.de/svc/a/{ID}"#https://www.mobile.de/svc/a/342813417
+        Secondary_cars_url = f"https://www.mobile.de/svc/a/{ID}"#https://www.mobile.de/svc/a/373790083
         save_html(Secondary_cars_url, directory, Secondary_cars_filename)
         car_number +=1  
 
@@ -172,23 +172,121 @@ def make_all_secondary_blocks(directory, ids):
 
 def get_info_from_secondary_block(block):
     """Funkcija iz niza za posamezn blok izlušči relevantne informacije in jih vrne kot slovar."""
-    mileage = re.search(r'{"label":"Mileage","tag":"mileage","value":"(.*) km"}', block)
-    displacement = re.search(r'{"label":"Cubic Capacity","tag":"cubicCapacity","value":"(.*) ccm"}', block)     #PROBLEM
-    power = re.search(r'{"label":"Power","tag":"power","value":"231 kW .\((.*) Hp\)"}', block)
-    transmission = re.search(r'{"label":"Gearbox","tag":"transmission","value":"(.*)"}', block)
-    registration = re.search(r'{"label":"First Registration","tag":"firstRegistration","value":".*\b\b\b\b"}', block)
-    previous_owners = re.search(r'{"label":"Number of Vehicle Owners","tag":"numberOfPreviousOwners","value":"(\b*)"}', block)
-    price = re.search(r'"localized":{"amount":"€(.*)","netAmount"', block)
-    seller = re.search(r'"contact":{"type":"(.*)","country":"(.*)",', block)
-    return {'mileage': mileage.group(1), 'displacement': displacement.group(1), 'power': power.group(1), 'transmission': transmission.group(1),
-            'registration': registration.group(1), 'previous_owners': previous_owners.group(1), 'price': price.group(1), 'seller': seller.group(1)}
+    
+    result = {}
+    
+    mileage_match = re.search(r'{"label"\s*:\s*".*?",\s*"tag"\s*:\s*"mileage",\s*"value"\s*:\s*"(.*?)\s*km"}', block)
+    if mileage_match:
+        result['mileage'] = mileage_match.group(1)
+    else:
+        result['mileage'] = "ni podatka"
+
+    displacement_match = re.search(r'{"label"\s*:\s*"Hubraum",\s*"tag"\s*:\s*"cubicCapacity",\s*"value"\s*:\s*"([\d.]+)\s*cm³"}', block)
+    if displacement_match:
+        result['displacement'] = displacement_match.group(1)
+    else:
+        result['displacement'] = "ni podatka"
+
+    power_match = re.search(r'{"label":"Leistung","tag":"power","value":"([\d\s]+)\s*kW\s*\(([\d\s]+)\s*PS\)"}', block)
+    if power_match:
+        kw_value = power_match.group(1).replace(' ', '').replace('kW', '')
+        ps_value = power_match.group(2).replace(' ', '').replace('PS', '')
+
+        try:
+            result['power_kW'] = int(kw_value)
+            result['power_Hp'] = int(ps_value)
+        except ValueError:
+            result['power_kW'] = "ni podatka"
+            result['power_Hp'] = "ni podatka"
+    else:
+        result['power_kW'] = "ni podatka"
+        result['power_Hp'] = "ni podatka"
+
+    transmission_match = re.search(r'{"label"\s*:\s*"Getriebe",\s*"tag"\s*:\s*"transmission",\s*"value"\s*:\s*"(.*?)"}', block)
+    if transmission_match:
+        transmission_value = transmission_match.group(1)
+        if transmission_value == 'Automatik':
+            result['transmission'] = 'Automatic'
+        else:
+            result['transmission'] = 'Manual'
+    else:
+        result['transmission'] = "ni podatka"
+
+    registration_match = re.search(r'{"label"\s*:\s*"Erstzulassung",\s*"tag"\s*:\s*"firstRegistration",\s*"value"\s*:\s*"\d{2}/(\d{4})"}', block)
+    if registration_match:
+        result['registration'] = registration_match.group(1)
+    else:
+        result['registration'] = "ni podatka"
+
+    previous_owners_match = re.search(r'{"label"\s*:\s*"Anzahl der Fahrzeughalter",\s*"tag"\s*:\s*"numberOfPreviousOwners",\s*"value"\s*:\s*"(\d+)"}', block)
+    if previous_owners_match:
+        result['previous_owners'] = previous_owners_match.group(1)
+    else:
+        result['previous_owners'] = "ni podatka"
+
+    homologation_match = re.search(r'{"label":"HU","tag":"hu","value":"(\d{2}/\d{4})"}', block)
+    if homologation_match:
+        homologation_value = homologation_match.group(1)
+        result['homologation'] = homologation_value
+    else:
+        result['homologation'] = "ni podatka"
+
+    price_match = re.search(r'"localized":{"amount":"([\d.,\s]+)€"', block)
+    if price_match:
+        price_value = price_match.group(1).replace(' ', '').replace(',', '').replace('€', '')
+        try:
+            result['price'] = int(price_value)
+        except ValueError:
+            result['price'] = int(float(price_value)*1000)
+    else:
+        result['price'] = "ni podatka"
+
+    seller_match = re.search(r'"contact"\s*:\s*{"type"\s*:\s*"(.*?)",\s*"country"\s*:\s*"(.*?)",', block)
+    if seller_match:
+        seller_value = seller_match.group(1)
+        if seller_value == 'Händler':
+            result['seller_type'] = 'Dealer'
+        else:
+            result['seller_type'] = 'Private seller'
+        result['seller_country'] = seller_match.group(2)
+    else:
+        result['seller_type'] = "ni podatka"
+        result['seller_country'] = "ni podatka"
+
+    return result
+
+
+
+    
+    #print(block)
+    #pattern = r'{"label"\s*:\s*".*?",\s*"tag"\s*:\s*"mileage",\s*"value"\s*:\s*"(.*?)\s*km"}'
+    #mileage = re.search(pattern, block)
+    #mileage = re.search(r'{"label":".*?","tag":"mileage","value":"(.*) km"}', block, re.DOTALL)
+    #displacement = re.search(r'{"label":"Cubic Capacity","tag":"cubicCapacity","value":"(.*) ccm"}', block)     
+    #power = re.search(r'{"label":"Power","tag":"power","value":"231 kW .\((.*) Hp\)"}', block)
+    #transmission = re.search(r'{"label":"Gearbox","tag":"transmission","value":"(.*)"}', block)
+    #registration = re.search(r'{"label":"First Registration","tag":"firstRegistration","value":".*\b\b\b\b"}', block)
+    #previous_owners = re.search(r'{"label":"Number of Vehicle Owners","tag":"numberOfPreviousOwners","value":"(\b*)"}', block)
+    #price = re.search(r'"localized":{"amount":"€(.*)","netAmount"', block)
+    #seller = re.search(r'"contact":{"type":"(.*)","country":"(.*)",', block)
+    #if mileage:
+    #    print(mileage.group(1))
+    #    print({'mileage': mileage.group(1)})
+    #    return {'mileage': mileage.group(1)}
+    #else:
+    #    print("Mileage not found.")
+    #    return {'mileage': None}
+    #print(mileage.group(1))
+    r#eturn {'mileage': mileage.group(1)}
+#, 'displacement': displacement.group(1), 'power': power.group(1), 'transmission': transmission.group(1), registration': registration.group(1), 'previous_owners': previous_owners.group(1), 'price': price.group(1), 'seller': seller.group(1)}
 
 def get_info_from_secondary_blocks(secondary_blocks):
     """Funksija sprejme seznam nizov in vrne relevantne informacije kot seznam slovarjev."""
     info_from_secondary_blocks = []
     for block in secondary_blocks:
-        info_from_secondary_blocks.extend(get_info_from_secondary_block(block))
-        print(info_from_secondary_blocks)
+        print("extending info")
+        info_from_secondary_blocks.append(get_info_from_secondary_block(block))
+        #print(info_from_secondary_blocks)
     return info_from_secondary_blocks
 
 def write_csv(fieldnames, rows, directory, filename):
@@ -225,8 +323,9 @@ ids = get_info_from_blocks(Cars_directory, Starting_page_number, Number_of_pages
 #print(ids)
 #save_secondary_htmls(ids, Cars_directory)
 secondary_blocks = make_all_secondary_blocks(Cars_directory, ids)
-print("OK")
+#print(secondary_blocks[0])
 info = get_info_from_secondary_blocks(secondary_blocks)
+print(info)
 write_info_to_csv(info, Cars_directory, Csv_filename)
 
 #def main(redownload=True, reparse=True):
