@@ -5,7 +5,7 @@ import re
 
 
 
-Number_of_pages = 4
+Number_of_pages = 51
 Starting_page_number = 1
 Cars_directory = "cars"
 Csv_filename = "cars.csv"
@@ -33,9 +33,13 @@ def save_string_to_file(text, directory, filename):
 
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, filename)
-    with open(path, 'w', encoding='utf-8') as file_out:
-        file_out.write(text)
-    return None
+    try:
+        with open(path, 'w', encoding='utf-8') as file_out:
+            file_out.write(text)
+        return None
+    except:
+        return None
+
 
 
 def save_html(url, directory, filename):
@@ -247,8 +251,6 @@ def write_info_to_csv(info_from_secondary_blocks, directory, filename):
 
     assert info_from_secondary_blocks and (all(j.keys() == info_from_secondary_blocks[0].keys() for j in info_from_secondary_blocks))
     write_csv(info_from_secondary_blocks[0].keys(), info_from_secondary_blocks, directory, filename)
-
-
 
 
 
