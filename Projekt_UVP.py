@@ -2,18 +2,11 @@ import csv
 import os
 import requests
 import re
-#import selenium
-#from selenium import webdriver
-#from selenium.webdriver.chrome.options import Options
-#import time
-#import undetected_chromedriver as uc
-
 
 
 
 Number_of_pages = 4
 Starting_page_number = 1
-Number_of_cars = 2000
 Cars_directory = "cars"
 Csv_filename = "cars.csv"
 
@@ -21,6 +14,7 @@ Csv_filename = "cars.csv"
 def download_url_as_string(url):
     """Funkcija kot argument sprejme url in poskusi vrniti vsebino te spletne
     strani kot niz. V primeru, da med izvajanje pride do napake vrne None."""
+
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         page_content = requests.get(url, headers=headers)
@@ -30,26 +24,6 @@ def download_url_as_string(url):
         return None
     return page_content.text
 
-
-
-#def download_url_as_string_selenium(url):
-#    """Funkcija kot argument sprejme url in poskusi vrniti vsebino te spletne
-#    strani kot niz. V primeru, da med izvajanje pride do napake vrne None.
-#    """
-#    try:
-#        #DRIVER_PATH = "C:\Users\blin\AppData\Local\Programs\Python\Python311\Lib\site-packages\undetected_chromedriver\"
-#        options = webdriver.ChromeOptions()
-#        #options.add_argument("--headless")
-#        driver = webdriver.Chrome(options=options)
-#        driver.get(url)
-#
-#        page_content = driver.page_source
-#        driver.quit()
-#
-#        return page_content
-#    except Exception as e:
-#        print("Spletna stran trenutno ni dosegljiva:", e)
-#        return None
 
 def save_string_to_file(text, directory, filename):
     """Funkcija zapiše vrednost parametra "text" v novo ustvarjeno datoteko
@@ -63,23 +37,29 @@ def save_string_to_file(text, directory, filename):
         file_out.write(text)
     return None
 
+
 def save_html(url, directory, filename):
     """Funkcija shrani vsebino spletne strani na naslovu "url" v datoteko
     "directory"/"filename"."""
+
     page_content = download_url_as_string(url)
     save_string_to_file(page_content, directory, filename)
+
 
 def save_main_htmls(directory, page_number, number):
     """Funkcija shrani vsebino spletne strani na naslovih "cars_url" v datoteko
     "directory"/"filename_page_number"."""
+
     while page_number <= number:
         cars_url = f"https://suchen.mobile.de/fahrzeuge/search.html?damageUnrepaired=NO_DAMAGE_UNREPAIRED&isSearchRequest=true&makeModelVariant1.makeId=9000&makeModelVariant1.modelId=30&pageNumber={page_number}&ref=srpNextPage&scopeId=C&sortOption.sortBy=relevance&refId=3e6d2e0e-8fd8-8a33-ceb3-956b170f5017"
         cars_filename = f"main_cars{page_number}.html"
         save_html(cars_url, directory, cars_filename)
         page_number += 1
 
+
 def save_secondary_htmls(info_from_blocks, directory):
     """Funkcija sprejme množico, ki vsebuje id-je in shrani vsebino spletnih strani v datoteko "directory"/"filename_car_number"."""
+
     car_number = 1
     for i in info_from_blocks:
         ID = i
@@ -87,6 +67,7 @@ def save_secondary_htmls(info_from_blocks, directory):
         Secondary_cars_url = f"https://www.mobile.de/svc/a/{ID}"#https://www.mobile.de/svc/a/373790083
         save_html(Secondary_cars_url, directory, Secondary_cars_filename)
         car_number +=1
+
 
 def make_main_blocks(directory, main_filename):
     """Funkcija sprejme html dokument, ki se nahaja na lokaciji "directory"/"main_filename"
@@ -98,6 +79,7 @@ def make_main_blocks(directory, main_filename):
         str = doc.read()
     return re.findall(vzorec, str, flags=re.DOTALL)
 
+
 def make_all_main_blocks(directory, page_number, number):
     """Funkcija sprejme "seznam" dokumentov, ki so oštevilčeni s "page_number" in vrne seznam blokov, ki vsebujejo id."""
 
@@ -108,20 +90,26 @@ def make_all_main_blocks(directory, page_number, number):
         page_number += 1
     return sez
 
+
 def get_info_from_block(block):
     """Funkcija iz niza za posamezn blok izlušči id."""
+
     id = re.search(r'data-testid="no-top"><a class="link--muted no--text--decoration result-item" href="https://suchen\.mobile\.de/fahrzeuge/details.*?" data-listing-id="(\d+)"', block)
     return id.group(1)
 
+
 def get_info_from_blocks(directory, page_number, number):
     """Funkcija iz seznama blokov izlušči množico id-jev."""
+
     blocks = make_all_main_blocks(directory, page_number, number)
     info_from_blocks = {get_info_from_block(block) for block in blocks}
     return info_from_blocks
 
+
 def make_secondary_blocks(directory, car_number):
     """Funkcija sprejme html dokument, ki se nahaja na lokaciji "directory"/"secondary_cars'car_number'"
     in izlušči izsek z relevantnimi informacijami o avtomobilu."""
+
     secondary_filename = f"secondary_cars{car_number}.html"
     path = os.path.join(directory, secondary_filename)
     vzorec = r'.*"links"'
@@ -129,9 +117,11 @@ def make_secondary_blocks(directory, car_number):
         str = doc.read()
     return re.findall(vzorec, str, flags=re.DOTALL)
 
+
 def make_all_secondary_blocks(directory, ids):
     """Funkcija iz skupine dokumentov, ki se nahajajo v direktoriju in ustrezajo vzorcu "secondary_cars'car_number'"
     izlušči izseke z relevantnimi informacijami o avtomobilih."""
+
     car_number = 1
     secondary_blocks = []
     while car_number <= len(ids):
@@ -139,15 +129,6 @@ def make_all_secondary_blocks(directory, ids):
         car_number += 1
     return secondary_blocks
 
-def make_all_secondary_blocks_if_not_redownload(directory, number_of_cars):
-    """Funkcija iz skupine dokumentov, ki se nahajajo v direktoriju in ustrezajo vzorcu "secondary_cars'car_number'"
-    izlušči izseke z relevantnimi informacijami o avtomobilih."""
-    car_number = 1
-    secondary_blocks = []
-    while car_number <= number_of_cars:
-        secondary_blocks.extend(make_secondary_blocks(directory, car_number))
-        car_number += 1
-    return secondary_blocks
 
 def get_info_from_secondary_block(block):
     """Funkcija iz niza za posamezn blok izlušči relevantne informacije in jih vrne kot slovar."""
@@ -234,17 +215,21 @@ def get_info_from_secondary_block(block):
 
     return result
 
+
 def get_info_from_secondary_blocks(secondary_blocks):
     """Funksija sprejme seznam nizov in vrne relevantne informacije kot seznam slovarjev."""
+
     info_from_secondary_blocks = []
     for block in secondary_blocks:
         print("extending info")
         info_from_secondary_blocks.append(get_info_from_secondary_block(block))
     return info_from_secondary_blocks
 
+
 def write_csv(fieldnames, rows, directory, filename):
     """Funkcija v csv datoteko podano s parametroma "directory"/"filename" zapiše
     vrednosti v parametru "rows" pripadajoče ključem podanim v "fieldnames."""
+
     os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, filename)
     with open(path, 'w', encoding='utf-8') as csv_file:
@@ -254,10 +239,12 @@ def write_csv(fieldnames, rows, directory, filename):
             writer.writerow(row)
     return
 
+
 def write_info_to_csv(info_from_secondary_blocks, directory, filename):
     """Funkcija vse podatke iz parametra "ads" zapiše v csv datoteko podano s
     parametroma "directory"/"filename". Funkcija predpostavi, da so ključi vseh
     slovarjev parametra ads enaki in je seznam ads neprazen."""
+
     assert info_from_secondary_blocks and (all(j.keys() == info_from_secondary_blocks[0].keys() for j in info_from_secondary_blocks))
     write_csv(info_from_secondary_blocks[0].keys(), info_from_secondary_blocks, directory, filename)
 
@@ -273,6 +260,7 @@ def main(redownload_main=True, reparse_main=True, redownload_secondary=True, rep
     2. Lokalne html datoteke pretvori v lepšo predstavitev podatkov
     3. Podatke shrani v csv datoteko
     """
+
     if redownload_main:
         save_main_htmls(Cars_directory, Starting_page_number, Number_of_pages)
     if reparse_main:
@@ -284,5 +272,6 @@ def main(redownload_main=True, reparse_main=True, redownload_secondary=True, rep
         info = get_info_from_secondary_blocks(secondary_blocks)
         write_info_to_csv(info, Cars_directory, Csv_filename)
 
+
 if __name__ == '__main__':
-    main(False, True, True)
+    main(False, True, True, True)
